@@ -5,7 +5,7 @@ NUM_GPUS=1
 torchrun --standalone --nnodes=1 --nproc-per-node=$NUM_GPUS main.py \
     --do_train \
     --train_file data/train.json \
-    --validation_file data/dev.json \
+    --validation_file data/val.json \
     --preprocessing_num_workers 10 \
     --prompt_column content \
     --response_column summary \
