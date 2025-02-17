@@ -47,6 +47,7 @@ from arguments import ModelArguments, DataTrainingArguments
 logger = logging.getLogger(__name__)
 
 def main():
+    global extension
     parser = HfArgumentParser((ModelArguments, DataTrainingArguments, Seq2SeqTrainingArguments))
     if len(sys.argv) == 2 and sys.argv[1].endswith(".json"):
         # If we pass only one argument to the script and it's the path to a json file,
@@ -296,11 +297,11 @@ def main():
         decoded_labels = tokenizer.batch_decode(labels, skip_special_tokens=True)
 
         score_dict = {
-            "rouge-1": [],
-            "rouge-2": [],
-            "rouge-l": [],
-            "bleu-4": []
-        }
+            "rouge-1": [],# 衡量unigram级别重合度
+            "rouge-2": [],# 衡量bigram级别重合度
+            "rouge-l": [],# 衡量最长公共子序列
+            "bleu-4": []  # 衡量n-gram精度
+        }#生成文本与参考文本在词汇重叠（Rouge），句子结构相似性（BLEU），这是评估指标，通常数值越高越好，但也要结合具体任务来判断。
         for pred, label in zip(decoded_preds, decoded_labels):
             hypothesis = list(jieba.cut(pred))
             reference = list(jieba.cut(label))
