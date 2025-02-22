@@ -25,13 +25,11 @@ torchrun --standalone --nnodes=1 --nproc-per-node=$NUM_GPUS main.py \
     --save_steps 1000 \
     --learning_rate $LR \
     --pre_seq_len $PRE_SEQ_LEN \
-    --quantization_bit 4\
-    --num_train_epochs 100\
-    --evaluation_strategy epoch\
-    --save_strategy epoch\
-    --load_best_model_at_end\
-    --weight_decay 0.01\
-    --dropout_rate 0.1\
-    --early_stopping_patience 5
-
-
+    --quantization_bit 4 \
+    --num_train_epochs 100 \
+    --evaluation_strategy epoch \
+    --save_strategy epoch \
+    --load_best_model_at_end \
+    --weight_decay 0.01 \
+    --dropout_rate 0.1 \
+    --early_stopping_patience 5 \

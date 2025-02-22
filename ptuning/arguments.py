@@ -59,6 +59,14 @@ class ModelArguments:
     prefix_projection: bool = field(
         default=False
     )
+    dropout_rate: Optional[float] = field(
+        default=0.1,
+        metadata={"help": "Dropout rate for the model"}
+    )
+    early_stopping_patience: int = field(
+        default=5,
+        metadata={"help": "Patience for early stopping."}
+    )
 
 
 @dataclass

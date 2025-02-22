@@ -10,7 +10,6 @@ def augment_question(question, num_aug=2, num_replace=1):
     """生成num_aug个增强问题，每个问题替换num_replace个词语"""
     if not question:
         return []
-
     # 分词
     words = jieba.lcut(question)
     augmented = [] #存储生成的增强问题。

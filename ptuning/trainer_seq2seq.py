@@ -23,7 +23,6 @@ from trainer import PrefixTrainer
 from transformers.trainer_utils import PredictionOutput
 from transformers.utils import logging
 
-
 logger = logging.get_logger(__name__)
 
 
