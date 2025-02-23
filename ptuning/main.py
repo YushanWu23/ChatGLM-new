@@ -25,14 +25,13 @@ import json
 
 import numpy as np
 from datasets import load_dataset
-import jieba 
+import jieba
 from rouge_chinese import Rouge
 from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction
 import torch
 import pandas as pd
 from datasets import Dataset
 from torch.distributed.elastic.multiprocessing.errors import record
-
 
 import transformers
 from transformers import (
@@ -50,11 +49,13 @@ from arguments import ModelArguments, DataTrainingArguments
 
 logger = logging.getLogger(__name__)
 
+
 def load_json_to_dataset(file_path):
     with open(file_path, 'r', encoding='utf-8') as f:
         data = json.load(f)  # 加载 JSON 数据
     df = pd.DataFrame(data)  # 将 JSON 数据转换为 Pandas DataFrame
     return Dataset.from_pandas(df)  # 将 DataFrame 转换为 Dataset
+
 
 @record
 def main():
@@ -101,33 +102,32 @@ def main():
     data_files = {}
     if data_args.train_file is not None:
         raw_datasets["train"] = load_json_to_dataset(data_args.train_file)
-        #extension = data_args.train_file.split(".")[-1]
+        # extension = data_args.train_file.split(".")[-1]
         # 使用 pandas 读取 JSON 文件
-        #df = pd.read_json(data_args.train_file)
-        #raw_datasets["train"] = Dataset.from_pandas(df)
+        # df = pd.read_json(data_args.train_file)
+        # raw_datasets["train"] = Dataset.from_pandas(df)
 
     if data_args.validation_file is not None:
         raw_datasets["validation"] = load_json_to_dataset(data_args.validation_file)
-        #extension = data_args.validation_file.split(".")[-1]
-        #df = pd.read_json(data_args.validation_file)
-        #raw_datasets["validation"] = Dataset.from_pandas(df)
+        # extension = data_args.validation_file.split(".")[-1]
+        # df = pd.read_json(data_args.validation_file)
+        # raw_datasets["validation"] = Dataset.from_pandas(df)
     if data_args.test_file is not None:
         raw_datasets["test"] = load_json_to_dataset(data_args.test_file)
-        #data_files["test"] = data_args.test_file
-        #extension = data_args.test_file.split(".")[-1]
-        #df = pd.read_json(data_args.test_file)
-        #raw_datasets["test"] = Dataset.from_pandas(df)
+        # data_files["test"] = data_args.test_file
+        # extension = data_args.test_file.split(".")[-1]
+        # df = pd.read_json(data_args.test_file)
+        # raw_datasets["test"] = Dataset.from_pandas(df)
 
-    #print("Data files:", data_files)
-    #print(extension)
+    # print("Data files:", data_files)
+    # print(extension)
 
-    #raw_datasets = load_dataset(
+    # raw_datasets = load_dataset(
     #    extension,
-     #   data_files=data_files,
-      #  cache_dir=model_args.cache_dir,
-       # use_auth_token=True if model_args.use_auth_token else None,
-    #)
-
+    #   data_files=data_files,
+    #  cache_dir=model_args.cache_dir,
+    # use_auth_token=True if model_args.use_auth_token else None,
+    # )
 
     # Load pretrained model and tokenizer
     config = AutoConfig.from_pretrained(model_args.model_name_or_path, trust_remote_code=True)
@@ -178,7 +178,7 @@ def main():
     prompt_column = data_args.prompt_column
     response_column = data_args.response_column
     history_column = data_args.history_column
-    
+
     # Temporarily set max_target_length for training.
     max_target_length = data_args.max_target_length
 
@@ -227,7 +227,7 @@ def main():
                 context_length = len(a_ids)
                 input_ids = a_ids + b_ids + [tokenizer.eos_token_id]
                 labels = [tokenizer.pad_token_id] * context_length + b_ids + [tokenizer.eos_token_id]
-                
+
                 pad_len = max_seq_length - len(input_ids)
                 input_ids = input_ids + [tokenizer.pad_token_id] * pad_len
                 labels = labels + [tokenizer.pad_token_id] * pad_len
@@ -238,7 +238,7 @@ def main():
                 model_inputs["labels"].append(labels)
 
         return model_inputs
-    
+
     def print_dataset_example(example):
         print("input_ids", example["input_ids"])
         print("inputs", tokenizer.decode(example["input_ids"]))
@@ -304,13 +304,13 @@ def main():
     # Data collator
     label_pad_token_id = -100 if data_args.ignore_pad_token_for_loss else tokenizer.pad_token_id
 
-    #class CustomDataCollator(DataCollatorForSeq2Seq):
+    # class CustomDataCollator(DataCollatorForSeq2Seq):
     #    def __call__(self, features):
-            # 调用父类的 __call__ 方法
+    # 调用父类的 __call__ 方法
     #        batch = super().__call__(features)
 
-            # 添加 return_loss=True
-            #batch['return_loss'] = True
+    # 添加 return_loss=True
+    # batch['return_loss'] = True
 
     #        return batch
 
@@ -333,33 +333,27 @@ def main():
             labels = np.where(labels != -100, labels, tokenizer.pad_token_id)
         decoded_labels = tokenizer.batch_decode(labels, skip_special_tokens=True)
 
-        #loss = ...  # 根据你的任务计算损失
 
         score_dict = {
-            "eval_loss": None,
-            "rouge-1": [],# 衡量unigram级别重合度
-            "rouge-2": [],# 衡量bigram级别重合度
-            "rouge-l": [],# 衡量最长公共子序列
+            "rouge-1": [],  # 衡量unigram级别重合度
+            "rouge-2": [],  # 衡量bigram级别重合度
+            "rouge-l": [],  # 衡量最长公共子序列
             "bleu-4": [],  # 衡量n-gram精度
-        }#生成文本与参考文本在词汇重叠（Rouge），句子结构相似性（BLEU），这是评估指标，通常数值越高越好，但也要结合具体任务来判断。
+        }  # 生成文本与参考文本在词汇重叠（Rouge），句子结构相似性（BLEU），这是评估指标，通常数值越高越好，但也要结合具体任务来判断。
         for pred, label in zip(decoded_preds, decoded_labels):
             hypothesis = list(jieba.cut(pred))
             reference = list(jieba.cut(label))
             rouge = Rouge()
-            scores = rouge.get_scores(' '.join(hypothesis) , ' '.join(reference))
+            scores = rouge.get_scores(' '.join(hypothesis), ' '.join(reference))
             result = scores[0]
-            
+
             for k, v in result.items():
                 score_dict[k].append(round(v["f"] * 100, 4))
             bleu_score = sentence_bleu([list(label)], list(pred), smoothing_function=SmoothingFunction().method3)
             score_dict["bleu-4"].append(round(bleu_score * 100, 4))
         # 计算平均值
         for k, v in score_dict.items():
-            if k != "eval_loss":  # 跳过 eval_loss 的计算
-                score_dict[k] = float(np.mean(v))
-         # 计算eval_loss
-        #score_dict["eval_loss"] = float(np.mean(loss))
-
+            score_dict[k] = float(np.mean(v))
         return score_dict
 
     # Override the decoding parameters of Seq2SeqTrainer
@@ -372,12 +366,12 @@ def main():
         data_args.num_beams if data_args.num_beams is not None else training_args.generation_num_beams
     )
     # Initialize our Trainer
-    #class CustomSeq2SeqTrainer(Seq2SeqTrainer):
+    # class CustomSeq2SeqTrainer(Seq2SeqTrainer):
     #    def _save_checkpoint(self, model, trial, metrics=None):
-     #       if metrics is None:
-      #          metrics = {}
-       #     metrics.pop("eval_loss", None)  # 确保不会访问 eval_loss
-        #    super()._save_checkpoint(model, trial, metrics)
+    #       if metrics is None:
+    #          metrics = {}
+    #     metrics.pop("eval_loss", None)  # 确保不会访问 eval_loss
+    #    super()._save_checkpoint(model, trial, metrics)
 
     trainer = Seq2SeqTrainer(
         model=model,
@@ -417,7 +411,8 @@ def main():
     max_seq_length = data_args.max_source_length + data_args.max_target_length + 1
     if training_args.do_eval:
         logger.info("*** Evaluate ***")
-        metrics = trainer.evaluate(metric_key_prefix="eval", do_sample=True, top_p=0.7, max_length=max_seq_length, temperature=0.95)
+        metrics = trainer.evaluate(metric_key_prefix="eval", do_sample=True, top_p=0.7, max_length=max_seq_length,
+                                   temperature=0.95)
         max_eval_samples = data_args.max_eval_samples if data_args.max_eval_samples is not None else len(eval_dataset)
         metrics["eval_samples"] = min(max_eval_samples, len(eval_dataset))
 
@@ -426,7 +421,8 @@ def main():
 
     if training_args.do_predict:
         logger.info("*** Predict ***")
-        predict_results = trainer.predict(predict_dataset, metric_key_prefix="predict", max_length=max_seq_length, do_sample=True, top_p=0.7, temperature=0.95)
+        predict_results = trainer.predict(predict_dataset, metric_key_prefix="predict", max_length=max_seq_length,
+                                          do_sample=True, top_p=0.7, temperature=0.95)
         metrics = predict_results.metrics
         max_predict_samples = (
             data_args.max_predict_samples if data_args.max_predict_samples is not None else len(predict_dataset)

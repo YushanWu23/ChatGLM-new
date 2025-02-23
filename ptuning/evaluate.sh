@@ -1,6 +1,6 @@
-PRE_SEQ_LEN=512
-CHECKPOINT=adgen-chatglm2-6b-pt-512-1e-3
-STEP=5000
+PRE_SEQ_LEN=300
+CHECKPOINT=adgen-chatglm2-6b-pt-300-2e-2-v3
+STEP=3000
 NUM_GPUS=1
 
 torchrun --standalone --nnodes=1 --nproc-per-node=$NUM_GPUS main.py \
