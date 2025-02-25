@@ -1,5 +1,5 @@
 PRE_SEQ_LEN=300
-LR=2e-2
+LR=15e-3
 NUM_GPUS=1
 
 torchrun --standalone --nnodes=1 --nproc-per-node=$NUM_GPUS main.py \
@@ -20,7 +20,7 @@ torchrun --standalone --nnodes=1 --nproc-per-node=$NUM_GPUS main.py \
     --per_device_eval_batch_size 4 \
     --gradient_accumulation_steps 4 \
     --predict_with_generate \
-    --max_steps 5000 \
+    --max_steps 3000 \
     --logging_steps 50 \
     --save_steps 2000 \
     --learning_rate $LR \
