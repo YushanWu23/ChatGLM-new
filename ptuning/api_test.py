@@ -15,27 +15,34 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+# 初始化全局 history
+history = []
 
 # 定义 round_up 函数
 def round_up(value, multiple):
     return (value + multiple - 1) // multiple * multiple
+@app.get("/")
+async def read_root():
+    return {"message": "Welcome to the ChatGLM API"}
 @app.post("/")
 async def create_item(request: Request):
-    global model, tokenizer
+    global model, tokenizer, history
     json_post_raw = await request.json()
     json_post = json.dumps(json_post_raw)
     json_post_list = json.loads(json_post)
     prompt = json_post_list.get('prompt')
-    history = json_post_list.get('history')
     max_length = json_post_list.get('max_length')
     top_p = json_post_list.get('top_p')
     temperature = json_post_list.get('temperature')
-    response, history = model.chat(tokenizer,
+    response, new_history  = model.chat(tokenizer,
                                    prompt,
                                    history=history,
                                    max_length=max_length if max_length else 2048,
                                    top_p=top_p if top_p else 0.7,
                                    temperature=temperature if temperature else 0.95)
+    # 更新全局 history
+    history = new_history
+
     now = datetime.datetime.now()
     time = now.strftime("%Y-%m-%d %H:%M:%S")
     answer = {
@@ -53,7 +60,8 @@ async def create_item(request: Request):
 
 if __name__ == '__main__':
     pre_seq_len = 300
-    checkpoint_path = "./output/adgen-chatglm2-6b-pt-300-2e-2/checkpoint-3000"
+    checkpoint_path = "./output/adgen-chatglm2-6b-pt-300-2e-2-new/checkpoint-3000"
+
 
     tokenizer = AutoTokenizer.from_pretrained("/autodl-fs/data/ChatGLM", trust_remote_code=True)
     config = AutoConfig.from_pretrained("/autodl-fs/data/ChatGLM", trust_remote_code=True, pre_seq_len=pre_seq_len)
@@ -69,7 +77,6 @@ if __name__ == '__main__':
         model = model.quantize(4)
     except AttributeError as e:
         print(f"Quantization failed: {e}")
-
     model = model.cuda()
     model.eval()
     uvicorn.run(app, host='0.0.0.0', port=8080, workers=1)
