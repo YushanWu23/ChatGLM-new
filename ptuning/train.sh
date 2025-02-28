@@ -1,17 +1,17 @@
 PRE_SEQ_LEN=300
-LR=15e-3
+LR=1e-2
 NUM_GPUS=1
 
 torchrun --standalone --nnodes=1 --nproc-per-node=$NUM_GPUS main.py \
     --do_train \
     --train_file data/train_new.json \
     --validation_file data/val_new.json \
-    --preprocessing_num_workers 20 \
+    --preprocessing_num_workers 12 \
     --prompt_column content \
     --response_column summary \
     --overwrite_cache \
     --model_name_or_path /autodl-fs/data/ChatGLM \
-    --output_dir output/adgen-chatglm2-6b-pt-$PRE_SEQ_LEN-$LR-v3 \
+    --output_dir output/adgen-chatglm2-6b-pt-$PRE_SEQ_LEN-$LR \
     --report_to tensorboard \
     --overwrite_output_dir \
     --max_source_length 300 \
@@ -22,7 +22,8 @@ torchrun --standalone --nnodes=1 --nproc-per-node=$NUM_GPUS main.py \
     --predict_with_generate \
     --max_steps 3000 \
     --logging_steps 50 \
-    --save_steps 2000 \
+    --save_steps 500 \
+    --save_total_limit 2\
     --learning_rate $LR \
     --pre_seq_len $PRE_SEQ_LEN \
     --quantization_bit 4 \
@@ -31,3 +32,8 @@ torchrun --standalone --nnodes=1 --nproc-per-node=$NUM_GPUS main.py \
     --lr_scheduler_type cosine \
     --warmup_steps 200 \
     --fp16 \
+    --evaluation_strategy steps \
+    --eval_steps 500 \
+    --load_best_model_at_end \
+    --metric_for_best_model rouge-1 \
+    --save_strategy steps \
