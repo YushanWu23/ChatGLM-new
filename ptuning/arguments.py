@@ -63,10 +63,10 @@ class ModelArguments:
         default=0.05,
         metadata={"help": "Dropout rate for the model"}
     )
-    #early_stopping_patience: int = field(
-     #   default=5,
-      #  metadata={"help": "Patience for early stopping."}
-    #)
+    early_stopping_patience: int = field(
+        default=5,
+        metadata={"help": "Patience for early stopping."}
+    )
 
 
 @dataclass

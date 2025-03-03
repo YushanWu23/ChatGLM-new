@@ -28,10 +28,12 @@ from datasets import load_dataset
 import jieba
 from rouge_chinese import Rouge
 from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction
-import torch
 import pandas as pd
 from datasets import Dataset
 from torch.distributed.elastic.multiprocessing.errors import record
+import torch.distributed as dist  # 导入 torch.distributed 模块
+import torch
+torch.cuda.empty_cache()
 
 import transformers
 from transformers import (
@@ -48,6 +50,7 @@ from trainer_seq2seq import Seq2SeqTrainer
 from arguments import ModelArguments, DataTrainingArguments
 
 logger = logging.getLogger(__name__)
+
 
 
 def load_json_to_dataset(file_path):
@@ -68,6 +71,7 @@ def main():
     else:
         model_args, data_args, training_args = parser.parse_args_into_dataclasses()
 
+
     # Setup logging
     logging.basicConfig(
         format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
@@ -85,6 +89,11 @@ def main():
     transformers.utils.logging.set_verbosity(log_level)
     transformers.utils.logging.enable_default_handler()
     transformers.utils.logging.enable_explicit_format()
+
+    # Initialize distributed environment
+    #if not dist.is_initialized() and training_args.local_rank != -1:
+    #    dist.init_process_group(backend="nccl", init_method="env://")
+    #    torch.cuda.set_device(training_args.local_rank)
 
     # Log on each process the small summary:
     logger.warning(
@@ -194,7 +203,7 @@ def main():
 
         inputs = [prefix + inp for inp in inputs]
         model_inputs = tokenizer(inputs, max_length=data_args.max_source_length, truncation=True, padding=True)
-        labels = tokenizer(text_target=targets, max_length=max_target_length, truncation=True)
+        labels = tokenizer(text_target=targets, max_length=max_target_length, truncation=True,padding=True)
 
         if data_args.ignore_pad_token_for_loss:
             labels["input_ids"] = [
@@ -236,6 +245,9 @@ def main():
 
                 model_inputs["input_ids"].append(input_ids)
                 model_inputs["labels"].append(labels)
+                # 添加长度检查
+                assert len(input_ids) == max_seq_length, f"Input length mismatch: {len(input_ids)} vs {max_seq_length}"
+                assert len(labels) == max_seq_length, f"Label length mismatch: {len(labels)} vs {max_seq_length}"
 
         return model_inputs
 
@@ -319,7 +331,7 @@ def main():
         model=model,
         label_pad_token_id=label_pad_token_id,
         pad_to_multiple_of=None,
-        padding=False
+        padding=True
     )
 
     # Metric
