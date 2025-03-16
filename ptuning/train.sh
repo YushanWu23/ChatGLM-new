@@ -1,5 +1,5 @@
 PRE_SEQ_LEN=300
-LR=1.2e-2
+LR=1.8e-2
 NUM_GPUS=1
 
 torchrun --standalone --nnodes=1 --nproc-per-node=$NUM_GPUS main.py \
@@ -20,21 +20,23 @@ torchrun --standalone --nnodes=1 --nproc-per-node=$NUM_GPUS main.py \
     --per_device_eval_batch_size 4 \
     --gradient_accumulation_steps 4 \
     --predict_with_generate \
-    --max_steps 3000 \
+    --max_steps 4000 \
     --logging_steps 50 \
-    --save_steps 250 \
+    --save_steps 100 \
     --save_total_limit 2\
     --learning_rate $LR \
     --pre_seq_len $PRE_SEQ_LEN \
     --quantization_bit 4 \
-    --weight_decay 0.01 \
-    --dropout_rate 0.1 \
-    --lr_scheduler_type cosine \
-    --warmup_steps 200 \
+    --weight_decay 0.012 \
+    --dropout_rate 0.12 \
+    --lr_scheduler_type cosine_with_restarts \
+    --num_cycles 2 \
+    --warmup_ratio 0.1 \
     --evaluation_strategy steps \
-    --eval_steps 250 \
-    --early_stopping_patience 5 \
+    --eval_steps 100 \
+    --early_stopping_patience 6 \
     --load_best_model_at_end \
     --metric_for_best_model rouge-1 \
     --save_strategy steps \
     --max_grad_norm 1.0 \
+    --fp16 \
