@@ -60,15 +60,17 @@ class ModelArguments:
         default=False
     )
     dropout_rate: Optional[float] = field(
-        default=0.05,
+        default=0.12,
         metadata={"help": "Dropout rate for the model"}
     )
     early_stopping_patience: int = field(
-        default=5,
+        default=6,
         metadata={"help": "Patience for early stopping."}
     )
-
-
+    num_cycles: int = field(
+        default=2,
+        metadata={"help": "Number of training cycles."}
+    )
 @dataclass
 class DataTrainingArguments:
     """
