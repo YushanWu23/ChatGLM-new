@@ -65,6 +65,9 @@ async def create_item(request: Request):
 
             user_histories[user_id] = new_history[-50:]  # 限制历史记录长度
 
+        time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        log = f"[{time}] prompt: {repr(prompt)}, response: {repr(response)}"
+        print(log)
         return {
             "response": response,
             "status": 200,
