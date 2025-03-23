@@ -36,76 +36,65 @@ async def read_root():
 @app.post("/")
 async def create_item(request: Request):
     try:
-        global model, tokenizer, history
-        # 打印原始请求体，用于调试
+        # 获取请求体并清理非法字符
         body = await request.body()
-        print(f"Received request body: {body.decode('utf-8')}")  # 新增调试日志
-
-        # 清理请求体，移除非法字符
-        cleaned_body = body.decode('utf-8').replace('\n', '\\n').replace('\t', '\\t')
-        json_post_raw = json.loads(cleaned_body)
-
-        json_post = json.dumps(json_post_raw)
-        json_post_list = json.loads(json_post)
-        prompt = json_post_list.get('prompt')
-        max_length = json_post_list.get('max_length')
-        top_p = json_post_list.get('top_p')
-        temperature = json_post_list.get('temperature')
-
-        response, new_history = model.chat(tokenizer,
-                                           prompt,
-                                           history=history,
-                                           max_length=max_length if max_length else 2048,
-                                           top_p=top_p if top_p else 0.7,
-                                           temperature=temperature if temperature else 0.95)
-        history = new_history
-
-        now = datetime.datetime.now()
-        time = now.strftime("%Y-%m-%d %H:%M:%S")
-        answer = {
-            "response": response,
-            "history": history,
-            "status": 200,
-            "time": time
-        }
-        log = f"[{time}] prompt: {repr(prompt)}, response: {repr(response)}"
-        print(log)
-        if torch.backends.mps.is_available():
-            torch.mps.empty_cache()
-        return answer
-    except json.JSONDecodeError as e:
-        now = datetime.datetime.now()
-        time = now.strftime("%Y-%m-%d %H:%M:%S")
-        print(f"[{time}] JSONDecodeError: {e}")  # 新增异常处理日志
-        return {"error": "Invalid JSON format", "status": 400}  # 返回友好的错误信息
-    except Exception as e:
-        now = datetime.datetime.now()
-        time = now.strftime("%Y-%m-%d %H:%M:%S")
-        print(f"[{time}] Error: {e}")  # 新增异常处理日志
-        return {"error": "Internal Server Error", "status": 500}  # 返回友好的错误信息
-
-@app.post("/clearHistory")
-async def clear_history(request: Request):
-    try:
-        # 获取请求体
-        json_post_raw = await request.json()
-        user_id = json_post_raw.get("userId")
+        cleaned_body = body.decode('utf-8').replace('\n', '\\n').replace('\t', '\\t').replace('\\', '\\\\')
+        # 获取请求参数
+        json_post = json.loads(cleaned_body)
+        user_id = json_post.get('userId')
+        prompt = json_post.get('prompt')
+        max_length = json_post.get('max_length', 300)
+        top_p = json_post.get('top_p', 1.0)
+        temperature = json_post.get('temperature', 0.7)
 
         if not user_id:
             return {"error": "Missing user ID", "status": 400}
 
-        # 清空该用户的对话历史
+        # 获取并更新历史记录
+        with history_lock:
+            history = user_histories[user_id].copy()
+
+            response, new_history = model.chat(
+                tokenizer,
+                prompt,
+                history=history,
+                max_length=max_length,
+                top_p=top_p,
+                temperature=temperature
+            )
+
+            user_histories[user_id] = new_history[-50:]  # 限制历史记录长度
+
+        return {
+            "response": response,
+            "status": 200,
+            "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+
+    except Exception as e:
+        print(f"[ERROR] {datetime.datetime.now()} {str(e)}")
+        return {"error": "Internal Server Error", "status": 500}
+
+
+@app.post("/clearHistory")
+async def clear_history(request: Request):
+    try:
+        data = await request.json()
+        user_id = data.get("userId")
+
+        if not user_id:
+            return {"error": "Missing user ID", "status": 400}
+
         with history_lock:
             if user_id in user_histories:
                 user_histories[user_id].clear()
-                print(f"[{datetime.datetime.now()}] Cleared history for user: {user_id}")
-                return {"status": "success", "message": "History cleared"}
-            else:
-                return {"status": "success", "message": "No history found for user"}
+
+        return {"status": "success", "message": "History cleared"}
 
     except Exception as e:
-        print(f"[{datetime.datetime.now()}] Error clearing history: {e}")
+        print(f"[ERROR] {datetime.datetime.now()} {str(e)}")
         return {"error": "Internal Server Error", "status": 500}
+
 
 if __name__ == '__main__':
     pre_seq_len = 300
