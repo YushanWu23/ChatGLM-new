@@ -51,7 +51,7 @@ async def create_item(request: Request):
         "status": 200,
         "time": time
     }
-    log = "[" + time + "] " + '", prompt:"' + prompt + '", response:"' + repr(response) + '"'
+    log = f"[{time}] prompt: {repr(prompt)}, response: {repr(response)}"
     print(log)
     if torch.backends.mps.is_available():
         torch.mps.empty_cache()
@@ -60,8 +60,7 @@ async def create_item(request: Request):
 
 if __name__ == '__main__':
     pre_seq_len = 300
-    checkpoint_path = "./output/adgen-chatglm2-6b-pt-300-2e-2-new/checkpoint-3000"
-
+    checkpoint_path = "./output/adgen-chatglm2-6b-pt-300-15e-3-new/checkpoint-2000"
 
     tokenizer = AutoTokenizer.from_pretrained("/autodl-fs/data/ChatGLM", trust_remote_code=True)
     config = AutoConfig.from_pretrained("/autodl-fs/data/ChatGLM", trust_remote_code=True, pre_seq_len=pre_seq_len)
